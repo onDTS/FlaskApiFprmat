@@ -42,3 +42,7 @@ class UserProfileResource(Resource):
         except ValidationError as e:
             return {'error': e.errors()}, 400
 ```
+
+## Runner
+
+試しにRunnerも設定してみてる

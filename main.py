@@ -33,15 +33,15 @@ def get_user_profile():
         404: UserNotFoundResponse
     },
 )
-def user_profile(query: UserProfile):
+def user_profile(body: UserProfile):
     """ここにこのAPIの説明を書きます
     """
     # 何らかの条件で404を返すサンプル（例: nameが"notfound"なら404）
-    if query.name == "notfound":
+    if body.name == "notfound":
         return UserNotFoundResponse(error="User not found").model_dump(), 404
     # バリデーションは自動、受け取ったデータをそのまま返す
     try:
-        return SuccessResponse(name=query.name, age=query.age).model_dump()
+        return SuccessResponse(name=body.name, age=body.age).model_dump()
     except Exception as e:
         return {"error": str(e)}, 400
 
