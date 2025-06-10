@@ -1,9 +1,25 @@
+from flask import redirect
 from flask_openapi3 import OpenAPI, Info, Tag
-from models.user import UserProfile, SuccessResponse, UserNotFoundResponse
+from models.user import SampleQueryParams, UserProfile, SuccessResponse, UserNotFoundResponse
+import toml
 
-info = Info(title='Sample API', version='1.0', description='A simple User API')
+# pyproject.tomlからプロジェクト情報を取得
+with open("pyproject.toml", encoding="utf-8") as f:
+    pyproject = toml.load(f)
+project = pyproject.get("project", {})
+title = project.get("name", "Sample API")
+version = project.get("version", "1.0")
+description = project.get("description", "A simple User API")
+
+info = Info(title=title, version=version, description=description)
 app = OpenAPI(__name__, info=info)
 user_tag = Tag(name="user", description="User operations")
+
+# / にアクセスが来たときSwagger UIにリダイレクト
+@app.get("/")
+def root():
+    """Redirect to Swagger UI"""
+    return redirect("/openapi/swagger")
 
 @app.get(
     "/api/user",
@@ -14,9 +30,7 @@ user_tag = Tag(name="user", description="User operations")
     },
 )
 def get_user_profile():
-    """
-    Get user profile by query parameters (name, age)
-    """
+    """Get user profile by query parameters (name, age)"""
     try:
         # クエリパラメータをPydanticモデルでバリデーション
         user = UserProfile(name="お名前", age=22)
@@ -33,15 +47,26 @@ def get_user_profile():
         404: UserNotFoundResponse
     },
 )
-def user_profile(body: UserProfile):
-    """ここにこのAPIの説明を書きます
+def user_profile(query: SampleQueryParams, body: UserProfile):
+    """ユーザープロファイルを検証します。
+    
+    クエリのサンプル:
+    ?name=sampleuser&age=22
+    
+    リクエストボディの例:
+    {
+        "name": "sampleuser",
+        "age": 22
+    }
     """
-    # 何らかの条件で404を返すサンプル（例: nameが"notfound"なら404）
-    if body.name == "notfound":
+    # クエリのname, ageがNoneでなければ優先、なければbodyの値
+    user_name = query.param1 if query.param1 is not None else body.name
+    user_age = query.param2 if query.param2 is not None else body.age
+    # 404サンプル
+    if user_name == "notfound":
         return UserNotFoundResponse(error="User not found").model_dump(), 404
-    # バリデーションは自動、受け取ったデータをそのまま返す
     try:
-        return SuccessResponse(name=body.name, age=body.age).model_dump()
+        return SuccessResponse(name=user_name, age=user_age).model_dump()
     except Exception as e:
         return {"error": str(e)}, 400
 
